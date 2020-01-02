@@ -1,0 +1,7 @@
+apiVersion: canary.huya.com/v1beta1
+kind: CanaryDeploy
+metadata:
+  name: example-canarydeploy
+spec:
+  # Add fields here
+  size: 3
