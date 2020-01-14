@@ -13,6 +13,18 @@ type CanaryDeploySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	DeployRef DeployReference `json:"deployReference"`
+	DeployReplicas int32 `json:"deployReplicas"`
+	CanaryReplicas int32 `json:"canaryReplicas"`
+	CanaryVersion string `json:"canaryVersion"`
+}
+
+//DeployRef defines reference to target deploy
+type DeployReference struct {
+	Kind string `json:"kind"`
+	APIVersion string `json:"apiVersion"`
+	Namespace string `json:"namespace"`
+	Name string `json:"name"`
 }
 
 // CanaryDeployStatus defines the observed state of CanaryDeploy
@@ -21,6 +33,8 @@ type CanaryDeployStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	DeployReplicas int32 `json:"deployReplicas"`
+	CanaryReplicas int32 `json:"canaryReplicas"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
