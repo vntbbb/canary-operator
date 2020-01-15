@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -13,18 +14,10 @@ type CanaryDeploySpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	DeployRef DeployReference `json:"deployReference"`
-	DeployReplicas int32 `json:"deployReplicas"`
+	DeployRef appsv1.Deployment `json:"deployRef"`
 	CanaryReplicas int32 `json:"canaryReplicas"`
 	CanaryVersion string `json:"canaryVersion"`
-}
-
-//DeployRef defines reference to target deploy
-type DeployReference struct {
-	Kind string `json:"kind"`
-	APIVersion string `json:"apiVersion"`
-	Namespace string `json:"namespace"`
-	Name string `json:"name"`
+	CanaryName    string `json:"canaryName"`
 }
 
 // CanaryDeployStatus defines the observed state of CanaryDeploy
@@ -33,9 +26,19 @@ type CanaryDeployStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	DeployReplicas int32 `json:"deployReplicas"`
 	CanaryReplicas int32 `json:"canaryReplicas"`
+	CanaryStatus CanaryStatus `json:"status"`
 }
+
+// CanaryStatus define runtime of CanaryDeploy
+type CanaryStatus string
+
+// used for value of CanaryStatus
+const (
+	CanaryActive CanaryStatus = "active"
+	CanaryPaused CanaryStatus = "paused"
+	CanaryComplete CanaryStatus = "complete"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
