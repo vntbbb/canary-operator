@@ -26,8 +26,8 @@ type CanaryDeployStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	CanaryReplicas int32 `json:"canaryReplicas"`
-	CanaryStatus CanaryStatus `json:"status"`
+	Replicas int32 `json:"replicas"`
+	Status CanaryStatus `json:"status"`
 }
 
 // CanaryStatus define runtime of CanaryDeploy
