@@ -7,6 +7,7 @@ import (
 	canaryv1beta1 "github.com/vntbbb/canary-operator/pkg/apis/canary/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,6 +37,9 @@ func (e CanaryDeployError) Error() string {
 * business logic.  Delete these comments after modifying this file.*
  */
 
+ const (
+	canaryFinalizer string = "canary.finalizer.huya.com"
+ )
 // Add creates a new CanaryDeploy Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
@@ -106,6 +110,18 @@ func (r *ReconcileCanaryDeploy) Reconcile(request reconcile.Request) (reconcile.
 		return reconcile.Result{}, nil 
 	} else if err != nil {
 		log.Println(err.Error())
+		return reconcile.Result{}, err
+	}
+
+	log.Println("canaryDeploy.Finalizers: ", canaryDeploy.Finalizers)
+	if !canaryDeploy.ObjectMeta.DeletionTimestamp.IsZero() && containsString(canaryDeploy.Finalizers, canaryFinalizer)  {
+		log.Println("1------------------")
+		if err := r.doPreDelete(canaryDeploy); err != nil {
+			log.Println("Failed to remove owner from canaryDeploy: ", request.NamespacedName.String(), ", Error: ", err.Error())
+			log.Println("2------------------")
+			return reconcile.Result{}, err
+		}
+		log.Println("3------------------")
 		return reconcile.Result{}, err
 	}
 
@@ -458,6 +474,53 @@ func (r *ReconcileCanaryDeploy) getCanaryPodCount(canaryDeploy *canaryv1beta1.Ca
 	return int32(len(podList.Items)), nil
 }
 
+func (r *ReconcileCanaryDeploy) doPreDelete(canaryDeploy *canaryv1beta1.CanaryDeploy) error {
+	deployment := &appsv1.Deployment{}
+	namespacedName := types.NamespacedName{
+		Namespace: canaryDeploy.Spec.DeployRef.Namespace, 
+		Name: canaryDeploy.Spec.DeployRef.Name,
+	}
+	
+	if err := r.client.Get(context.TODO(), namespacedName, deployment); err != nil {
+		return CanaryDeployError{
+			fmt.Sprint(
+				"doPreDelete: Failed to get deployment: ", 
+				namespacedName.String(), 
+				", Error: ",
+				err.Error(),
+			),
+		}
+	}
+
+	// delete controller from canarydeploy
+	deployment.OwnerReferences = []metav1.OwnerReference{}
+	
+	if err := r.client.Update(context.TODO(), deployment); err != nil {
+		return CanaryDeployError {
+			fmt.Sprint(
+				"doPreDelete: Failed to delete controller of deployment: ", 
+				namespacedName.String(),
+				", Error: ", 
+				err.Error(),
+			),
+		}
+	}
+
+	canaryDeploy.Finalizers = removeString(canaryDeploy.Finalizers, canaryFinalizer)
+	if err := r.client.Update(context.TODO(), canaryDeploy); err != nil {
+		return CanaryDeployError {
+			fmt.Sprint(
+				"doPreDelete: Failed to delete finalizer from canaryDeploy: ", 
+				namespacedName.String(),
+				", Error: ", 
+				err.Error(),
+			),
+		}
+	}
+
+	return nil
+}
+
 func generateLabels(canaryDeploy *canaryv1beta1.CanaryDeploy) *map[string]string {
 	return &map[string]string{
 		"canaryName": canaryDeploy.Spec.CanaryName, 
@@ -465,6 +528,26 @@ func generateLabels(canaryDeploy *canaryv1beta1.CanaryDeploy) *map[string]string
 	}
 }
 
-func init () {
+func containsString(slice []string, s string) bool {
+    for _, item := range slice {
+        if item == s {
+            return true
+        }
+    }
+    return false
+}
+
+func removeString(slice []string, s string) (result []string) {
+    for _, item := range slice {
+        if item == s {
+            continue
+        }
+        result = append(result, item)
+    }
+    return
+}
+
+
+func init() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile |log.LUTC)
 }
